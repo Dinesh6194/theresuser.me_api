@@ -130,25 +130,24 @@ carbons = Table('carbonintensity', metadata,
 
 mapper(Carbon, carbons)
 
-class UserDetails(object):
-    query = db_session.query_property()
-    def __init__(self,user_email=None,user_name=None):
-        self.user_email = user_email
-        self.user_name = user_name
+class UserDetail(object):
+	query = db_session.query_property()
+	def __init__(self,user_email=None,user_name=None):
+		self.user_email = user_email
+		self.user_name = user_name
+	def serialize(self):
+		return {"user_email":self.user_email,"user_name":self.user_name}
         
 
-    def serialize(self):
-     	return {"user_email":self.user_email,"user_name":self.user_name}
-        
-
-userDetails = Table('user_details', metadata,
+userDetail = Table('user_details', metadata,
     Column('user_email', Text, primary_key=True),
     Column('user_name', Text)
     
     
 )
 
-mapper(UserDetails, userDetails)
+mapper(UserDetail, userDetail)
+
 
 class UserActivity(object):
     query = db_session.query_property()
@@ -166,7 +165,7 @@ class UserActivity(object):
 
 userActivity = Table('user_activity', metadata,
 	Column('record_id', Integer, primary_key=True),
-    Column('user_email', Text),
+    Column('user_email', ForeignKey(UserDetail.user_email)),
     Column('post_id', Integer,ForeignKey(Postitem.post_id)),
     Column('contributed_date',Date),
     Column('activity_category',Integer)
@@ -175,4 +174,5 @@ userActivity = Table('user_activity', metadata,
 )
 
 mapper(UserActivity, userActivity)
+
 

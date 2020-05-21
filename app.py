@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_restplus import Resource, Api, fields
 from database import db_session
-from models import BlogPost,Item_details,Year,Color,Postitem,Carbon, UserActivity, UserDetails
+from models import BlogPost,Item_details,Year,Color,Postitem,Carbon, UserActivity, UserDetail
 from sqlalchemy import func, extract
 import json
 import numpy as np
@@ -208,20 +208,22 @@ class UserActivitys(Resource):
         return {'Message':'Success'}
 
 @api.route('/post_user')
-class UserDetails(Resource):
+class Users(Resource):
     def post(self):
         data=request.get_json()
-        user=UserDetails(user_email=data['user_email'],user_name=data['user_name'])
+        user=UserDetail(user_email=data['user_email'],user_name=data['user_name'])
+        print(user)
         db_session.add(user)
         db_session.commit()
+        print(user)
         return {'Message':'Success'}
 
 @api.route('/user_name')
-class UserDetailss(Resource):
+class Users2(Resource):
    
     def post(self, **kwargs):
         data=request.get_json()
-        fetchedvalues=list(map(lambda c: c.serialize(),db_session.query(UserDetails).filter(UserDetails.user_email==data['user_email']).all()))
+        fetchedvalues=list(map(lambda c: c.serialize(),db_session.query(UserDetail).filter(UserDetail.user_email==data['user_email']).all()))
         
         return jsonify(fetchedvalues)
 
@@ -279,6 +281,48 @@ class Location(Resource):
             if(polygon.contains(point)):
                 day=sf.records()[i][0]
         return {"day":day}
+
+@api.route('/popularposteditems')
+class Popularpostitems(Resource):
+   
+    def get(self, **kwargs):
+        fetchedvalues=db_session.query(Postitem,Item_details).filter(Postitem.item_id==Item_details.item_id,Postitem.status==1).group_by(Item_details.item_id).with_entities(Item_details.item_name,func.count(Item_details.item_name)).order_by(func.count(Item_details.item_id).desc()).limit(3).all()
+        post_items=[]
+        for item_list in fetchedvalues:
+            valuedict={}
+            valuedict['item_name']=item_list[0]
+            valuedict['count']=item_list[1]
+            post_items.append(valuedict)
+       
+        return jsonify(post_items)
+
+@api.route('/totalitemsclaimed')
+class Totalitems(Resource):
+   
+    def get(self, **kwargs):
+        fetchedvalues=db_session.query(Postitem).filter(Postitem.status==0).with_entities(func.count(Postitem.item_id)).all()
+        valuedict={}
+        for valuelist in fetchedvalues:
+            for value in valuelist:
+                valuedict['totalitemsclaimed']=value           
+       
+
+        return jsonify(valuedict)
+
+@api.route('/totalcarbonintensityreduced')
+class Totalcarbonintensity(Resource):
+   
+    def get(self, **kwargs):
+        fetchedvalues=db_session.query(Postitem,Item_details).filter(Postitem.item_id==Item_details.item_id,Postitem.status==0).with_entities(func.sum(Item_details.carbon_intensity*Item_details.kg)).all()
+        valuedict={}
+        for valuelist in fetchedvalues:
+            for value in valuelist:
+                valuedict['totalcarbonintensityreduced']=value           
+       
+
+        return jsonify(valuedict)
+        
+        
 
 
 @application.teardown_appcontext
