@@ -250,21 +250,26 @@ class TopUserActivities(Resource):
    
     def post(self, **kwargs):
         data=request.get_json()
-        fetchedvalues=db_session.query(UserActivity,Postitem,Item_details).filter(UserActivity.post_id==Postitem.post_id,Postitem.item_id==Item_details.item_id,extract('Month',UserActivity.contributed_date)==data['month']).group_by(UserActivity.user_email).with_entities(UserActivity.user_email,func.sum(Item_details.carbon_intensity*Item_details.kg),func.sum(Item_details.kg)).order_by(func.sum(Item_details.carbon_intensity*Item_details.kg).desc()).limit(3).all()
-        fetcheduservalues=db_session.query(UserActivity,Postitem,Item_details).filter(UserActivity.post_id==Postitem.post_id,Postitem.item_id==Item_details.item_id,extract('Month',UserActivity.contributed_date)==data['month'],UserActivity.user_email==data['user_email']).group_by(UserActivity.user_email).with_entities(UserActivity.user_email,func.sum(Item_details.carbon_intensity*Item_details.kg),func.sum(Item_details.kg)).all()
+        fetchedvalues=db_session.query(UserActivity,UserDetail,Postitem,Item_details).filter(UserActivity.user_email==UserDetail.user_email,UserActivity.post_id==Postitem.post_id,Postitem.item_id==Item_details.item_id,extract('Month',UserActivity.contributed_date)==data['month']).group_by(UserActivity.user_email,UserDetail.user_name).with_entities(UserActivity.user_email,UserDetail.user_name,func.sum(Item_details.carbon_intensity*Item_details.kg),func.sum(Item_details.kg)).order_by(func.sum(Item_details.carbon_intensity*Item_details.kg).desc()).all()
+        # fetcheduservalues=db_session.query(UserActivity,Postitem,Item_details).filter(UserActivity.post_id==Postitem.post_id,Postitem.item_id==Item_details.item_id,extract('Month',UserActivity.contributed_date)==data['month'],UserActivity.user_email==data['user_email']).group_by(UserActivity.user_email).with_entities(UserActivity.user_email,func.sum(Item_details.carbon_intensity*Item_details.kg),func.sum(Item_details.kg)).all()
         postlist=[]
+        rank=1
         for valuelist in fetchedvalues:
             valuedict={}
+            valuedict["rank"]=rank
             valuedict["user_email"]=valuelist[0]
-            valuedict["total_ci"]=valuelist[1]
-            valuedict["total_weight"]=valuelist[2]
+            valuedict["user_name"]=valuelist[1]
+            valuedict["total_ci"]=valuelist[2]
+            valuedict["total_weight"]=valuelist[3]
             postlist.append(valuedict)
-        for valuelist in fetcheduservalues:
-            valuedict={}
-            valuedict["user_email"]=valuelist[0]
-            valuedict["total_ci"]=valuelist[1]
-            valuedict["total_weight"]=valuelist[2]
-            postlist.append(valuedict)
+            rank+=1
+
+        # for valuelist in fetcheduservalues:
+        #     valuedict={}
+        #     valuedict["user_email"]=valuelist[0]
+        #     valuedict["total_ci"]=valuelist[1]
+        #     valuedict["total_weight"]=valuelist[2]
+        #     postlist.append(valuedict)
         return jsonify(postlist)
 
 @api.route('/day') 
